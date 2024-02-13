@@ -1,6 +1,32 @@
 # Discord Bot
 
-Personal discord bot that has some basic utility commands that you might find with other bots. A couple unique commands is the ability to lookup an Overwatch player's statistics via a third party API, as well as the ability to set announcements for Twitch streamers whenever they go live using the Twitch API.
+Personal discord bot that has some basic utility commands that you might find with other bots. A couple unique commands is the ability to lookup an Overwatch player's statistics via a third party API, as well as the ability to set announcements for Twitch streamers whenever they go live via the Twitch API.
+
+Don't want to set it up on your own? [Add my bot to your server!](https://discord.com/api/oauth2/authorize?client_id=1049242812119535636&permissions=8&scope=applications.commands+bot)
+
+# Setup
+Step one - Create a [Discord application](https://discord.com/developers/applications) (if necessary)  
+
+Step two - Create a [Twitch application](https://dev.twitch.tv/console) (if necessary)  
+
+Step three - Clone the repository
+```
+$ git clone https://github.com/bradd07/Discord-Bot.git
+```
+Step four - Install required packages
+```
+$ pip3 install -r requirements.txt
+```
+Step five - Modify the .env file accordingly from steps one/two  
+```
+TWITCH_CLIENT_ID=your twitch client ID
+TWITCH_ACCESS_TOKEN=your twitch access token
+BOT_TOKEN=your discord application token
+```
+Step six - Run
+```
+$ python3 main.py
+```
 
 # Commands / Usage
 
@@ -23,6 +49,7 @@ All data is saved locally to a JSON file.
 - /twitch setchannel [id] : Set the channel to send the announcements in
 - /twitch force [username] : Force an announcement to the channel for the specified streamer in this guild\
 All data is saved locally to a JSON file.  
+NOTE: Although we try to make an announcement every time a new stream starts, we also don't want to spam servers with announcements. Therefore, there is a hard limit of one announcement per streamer every six hours.  
 ‎   
 - /overwatch [player] : Lookup an overwatch player's statistics for the most recent season.
 - /overwatch [player] [hero] : Look up an overwatch player's statistics for a specific hero for the most recent season.

@@ -26,7 +26,7 @@ class TwitchCmds(commands.Cog):
     @cog_ext.cog_slash(
         name="twitch",
         description="Manage Twitch settings",
-        guild_ids=[654559898641760256, 715119084056084550],  # testing guilds, can be changed
+        # guild_ids=[654559898641760256, 715119084056084550],  # testing guilds, can be changed
         options=[
             create_option(
                 name="command",

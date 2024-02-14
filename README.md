@@ -33,6 +33,8 @@ $ python3 main.py
 - /ping : Pong!
 - /avatar : Displays the specified user's avatar
 - /8ball : Ask the magic 8-ball a question!  
+- /poll create [choice1] [choice2] [...] : Start a poll with up to 10 choices
+- /purge [count] : Delete a number of messages (limit 50)  
 ‎   
 - /points : Display your own or the specified user's current amount of points in this guild
 - /setpoints [user] [amount] : Set the specified user's total amount of points in this guild

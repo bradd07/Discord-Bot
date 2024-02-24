@@ -36,6 +36,11 @@ $ python3 main.py
 - /poll create [choice1] [choice2] [...] : Start a poll with up to 10 choices
 - /purge [count] : Delete a number of messages (limit 50)  
 ‎   
+- /reactionrole add [emoji] [role] [message_id] : Add a reaction role to a message  
+- /reactionrole remove [emoji] [message_id] : Remove a reaction role from a message  
+- /reactionrole clear [message_id] : Clear all reaction roles from a message  
+All data is saved locally to a JSON file.  
+‎   
 - /points : Display your own or the specified user's current amount of points in this guild
 - /setpoints [user] [amount] : Set the specified user's total amount of points in this guild
 - /addpoints [user] [amount] : Add points to the specified user's total in this guild

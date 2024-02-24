@@ -13,6 +13,7 @@ client.load_extension("cmds.RegCmds")
 client.load_extension("cmds.PointsCmds")
 client.load_extension("cmds.OverwatchCmds")
 client.load_extension("cmds.TwitchCmds")
+client.load_extension("cmds.ReactionRole")
 
 
 @client.event

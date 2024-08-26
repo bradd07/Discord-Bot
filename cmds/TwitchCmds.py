@@ -368,9 +368,10 @@ class TwitchCmds(commands.Cog):
                     embed.set_author(name=stream_data['user_name'])
                     embed.set_image(
                         url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
-                    embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/1049713626895896686'
-                                            '/1206815771129552906/Status_Logo.png?ex=65dd61c5&is=65caecc5&hm'
-                                            '=2ea0ae42f9debc00f14796c03c821a31d91bf91d10a5702c1d6f2eed05b3598d&')
+                    embed.set_thumbnail(url='https://media.discordapp.net/attachments/1049713626895896686/124558727353'
+                                            '8605117/newlogo.png?ex=66cdf7cb&is=66cca64b&hm=3a39e66fa6fbdce183d99f9f561'
+                                            '6ff24a2d357421bb52911b286ad2e6e586ac1&=&format=webp&quality=lossless&widt'
+                                            'h=920&height=460')
                     embed.add_field(name="Viewers", value=viewer_count, inline=False)
                     embed.add_field(name="Game", value=game_name, inline=False)
 
@@ -422,9 +423,10 @@ class TwitchCmds(commands.Cog):
                     embed.set_author(name=stream_data['user_name'])
                     embed.set_image(
                         url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
-                    embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/1049713626895896686'
-                                            '/1206815771129552906/Status_Logo.png?ex=65dd61c5&is=65caecc5&hm'
-                                            '=2ea0ae42f9debc00f14796c03c821a31d91bf91d10a5702c1d6f2eed05b3598d&')
+                    embed.set_thumbnail(url='https://media.discordapp.net/attachments/1049713626895896686/124558727353'
+                                            '8605117/newlogo.png?ex=66cdf7cb&is=66cca64b&hm=3a39e66fa6fbdce183d99f9f561'
+                                            '6ff24a2d357421bb52911b286ad2e6e586ac1&=&format=webp&quality=lossless&widt'
+                                            'h=920&height=460')
                     embed.add_field(name="Viewers", value=viewer_count, inline=False)
                     embed.add_field(name="Game", value=game_name, inline=False)
 

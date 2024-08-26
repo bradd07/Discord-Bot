@@ -366,8 +366,17 @@ class TwitchCmds(commands.Cog):
                         color=discord.Color.red()
                     )
                     embed.set_author(name=stream_data['user_name'])
-                    embed.set_image(
-                        url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
+                    if stream_data['user_name'] == 'xFlxZh':
+                        # set custom thumbnail for flazh...
+                        embed.set_image(
+                            url='https://media.discordapp.net/attachments/1049713626895896686/1245587352693379154/live'
+                                'now.png?ex=66cdf7de&is=66cca65e&hm=3b0c29d57726e493805c28cacd4e81c400e549650bf3ced52'
+                                '2068d2a0cabdc66&=&format=webp&quality=lossless&width=550&height=309'.replace
+                            ("{width}", "320").replace("{height}", "180"))
+                    else:
+                        # default to Twitch stream thumbnail
+                        embed.set_image(
+                            url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
                     embed.set_thumbnail(url='https://media.discordapp.net/attachments/1049713626895896686/124558727353'
                                             '8605117/newlogo.png?ex=66cdf7cb&is=66cca64b&hm=3a39e66fa6fbdce183d99f9f561'
                                             '6ff24a2d357421bb52911b286ad2e6e586ac1&=&format=webp&quality=lossless&widt'
@@ -421,8 +430,18 @@ class TwitchCmds(commands.Cog):
                         color=discord.Color.red()
                     )
                     embed.set_author(name=stream_data['user_name'])
-                    embed.set_image(
-                        url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
+                    if stream_data['user_name'] == 'xFlxZh':
+                        # set custom thumbnail for flazh...
+                        embed.set_image(
+                            url='https://media.discordapp.net/attachments/1049713626895896686/1245587352693379154/live'
+                                'now.png?ex=66cdf7de&is=66cca65e&hm=3b0c29d57726e493805c28cacd4e81c400e549650bf3ced52'
+                                '2068d2a0cabdc66&=&format=webp&quality=lossless&width=550&height=309'.replace
+                                ("{width}", "320").replace("{height}", "180"))
+                    else:
+                        # default to Twitch stream thumbnail
+                        embed.set_image(
+                            url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
+
                     embed.set_thumbnail(url='https://media.discordapp.net/attachments/1049713626895896686/124558727353'
                                             '8605117/newlogo.png?ex=66cdf7cb&is=66cca64b&hm=3a39e66fa6fbdce183d99f9f561'
                                             '6ff24a2d357421bb52911b286ad2e6e586ac1&=&format=webp&quality=lossless&widt'

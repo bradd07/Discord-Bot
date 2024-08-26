@@ -17,6 +17,58 @@ Author: bradd07
 """
 
 
+# generates a new twitch OAUTH token when requested
+def get_oauth_token():
+    # twitch API endpoint for OAuth token generation
+    url = 'https://id.twitch.tv/oauth2/token'
+
+    # twitch IDs
+    client_id = os.getenv("TWITCH_CLIENT_ID")
+    client_secret = os.getenv("TWITCH_SECRET")
+
+    # generate payload
+    payload = {
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'grant_type': 'client_credentials'
+    }
+
+    try:
+        # making a POST request to the Twitch API
+        response = requests.post(url, params=payload)
+        data = response.json()
+
+        # check if access token is present in response
+        if 'access_token' in data:
+            # yay
+            return data['access_token']
+        else:
+            # nay
+            print("Error:", data.get('message', 'Failed to get access token'))
+            return None
+
+    # catch errors
+    except requests.RequestException as e:
+        print("Error:", e)
+        return None
+
+
+# automatically updates the locally stored .env file with new values
+def update_env_file(key, value):
+    # load existing .env file
+    dotenv_path = '.env'
+    with open(dotenv_path, 'r') as file:
+        lines = file.readlines()
+
+    # write the new value
+    with open(dotenv_path, 'w') as file:
+        for line in lines:
+            if line.startswith(key):
+                file.write(f"{key}={value}\n")
+            else:
+                file.write(line)
+
+
 class TwitchCmds(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -208,7 +260,13 @@ class TwitchCmds(commands.Cog):
         if response.status_code == 200:
             print("Token is valid")
         else:
-            print("Token is invalid")
+            print("Token is invalid... Generating a new one")
+            token = get_oauth_token()
+            if token:
+                # update token
+                print(f"Generated OAuth Access Token: {token}")
+                os.environ['TWITCH_ACCESS_TOKEN'] = token
+                update_env_file('TWITCH_ACCESS_TOKEN', token)
 
     async def check_streams(self):
         # wait until the bot is ready to start checking streams
@@ -224,8 +282,8 @@ class TwitchCmds(commands.Cog):
             for guild_id, data in self.settings.items():
                 await self.get_live_streams(guild_id, data)
 
-            # check every 5 mins
-            await asyncio.sleep(300)
+            # check every 10 mins... this is so that the stream has time to generate a thumbnail
+            await asyncio.sleep(600)
 
     async def get_live_streams(self, guild_id, dataz):
         # get each broadcaster for this guild
@@ -245,13 +303,14 @@ class TwitchCmds(commands.Cog):
             data = response.json()
 
             # check for data
-            if data["data"]:
-                stream_id = data["data"][0]["id"]
-                # check if we haven't announced this stream by ID
-                if stream_id not in self.streams.get(guild_id, {}):
-                    self.streams.setdefault(guild_id, {})[stream_id] = datetime.now()
-                    # try to send message
-                    await self.send_live_stream_message(guild_id, data["data"][0])
+            if 'data' in data:
+                if data["data"]:
+                    stream_id = data["data"][0]["id"]
+                    # check if we haven't announced this stream by ID
+                    if stream_id not in self.streams.get(guild_id, {}):
+                        self.streams.setdefault(guild_id, {})[stream_id] = datetime.now()
+                        # try to send message
+                        await self.send_live_stream_message(guild_id, data["data"][0])
 
     async def list_broadcasters(self, ctx, guild_id):
         # check if there are broadcasters set
@@ -263,7 +322,8 @@ class TwitchCmds(commands.Cog):
             # display
             broadcasters = "> "
             broadcasters += "\n> ".join(self.settings[guild_id]["names"])
-            await ctx.send(f"Current broadcasters set to check for this guild:\n> Announcement Channel: {channel_id}\n{broadcasters}")
+            await ctx.send(
+                f"Current broadcasters set to check for this guild:\n> Announcement Channel: {channel_id}\n{broadcasters}")
         else:
             await ctx.send("> There are no broadcasters set to check for this guild.")
 

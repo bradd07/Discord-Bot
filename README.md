@@ -20,8 +20,9 @@ $ pip3 install -r requirements.txt
 Step five - Modify the .env file accordingly from steps one/two  
 ```
 TWITCH_CLIENT_ID=your twitch client ID
-TWITCH_ACCESS_TOKEN=your twitch access token
+TWITCH_ACCESS_TOKEN=your twitch access token (will generate for the first time if empty/invalid)
 BOT_TOKEN=your discord application token
+TWITCH_SECRET=your twitch secret ID
 ```
 Step six - Run
 ```

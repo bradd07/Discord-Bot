@@ -3,10 +3,9 @@ import discord
 import requests
 import asyncio
 import json
+from discord import app_commands
 from discord.ext import commands
-from discord_slash import cog_ext
-from discord_slash.context import SlashContext
-from discord_slash.utils.manage_commands import create_option
+from discord.ext.commands import Context
 from dotenv import load_dotenv
 import os
 import pytz
@@ -69,6 +68,54 @@ def update_env_file(key, value):
                 file.write(line)
 
 
+# sends an announcement message to the specified channel with the collected stream data
+async def send_announcement(channel, stream_data):
+    # extract data
+    stream_title = stream_data["title"]
+    stream_url = f"https://www.twitch.tv/{stream_data['user_name']}"
+    viewer_count = stream_data["viewer_count"]
+    game_name = stream_data["game_name"]
+    broadcaster_name = stream_data['user_name']
+
+    # set up embed
+    embed = discord.Embed(
+        title=f"**{stream_title}**",
+        url=stream_url,
+        color=discord.Color.red()
+    )
+    embed.set_author(name=broadcaster_name)
+
+    if broadcaster_name == 'xFlxZh':
+        # set custom thumbnail for flazh...
+        embed.set_image(
+            url='https://media.discordapp.net/attachments/1049713626895896686/1245587352693379154/live'
+                'now.png?ex=66cdf7de&is=66cca65e&hm=3b0c29d57726e493805c28cacd4e81c400e549650bf3ced52'
+                '2068d2a0cabdc66&=&format=webp&quality=lossless&width=550&height=309'.replace
+            ("{width}", "320").replace("{height}", "180"))
+    else:
+        # default to Twitch stream thumbnail
+        embed.set_image(
+            url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
+
+    embed.set_thumbnail(url='https://media.discordapp.net/attachments/1049713626895896686/124558727353'
+                            '8605117/newlogo.png?ex=66cdf7cb&is=66cca64b&hm=3a39e66fa6fbdce183d99f9f561'
+                            '6ff24a2d357421bb52911b286ad2e6e586ac1&=&format=webp&quality=lossless&widt'
+                            'h=920&height=460')
+    embed.add_field(name="Viewers", value=viewer_count, inline=False)
+    embed.add_field(name="Game", value=game_name, inline=False)
+
+    # get mst current time
+    mst_timezone = pytz.timezone('America/Phoenix')
+    mst_now = datetime.now(tz=mst_timezone)
+    embed.set_footer(text="Twitch • " + mst_now.strftime("%m/%d/%Y %I:%M %p"),
+                     icon_url="https://cdn-longterm.mee6.xyz/plugins/twitch/logo.png")
+
+    # send the message
+    await channel.send(
+        f"Hey @everyone, {broadcaster_name} is now live on Twitch! Come and support the stream! Leave a comment and chat with them!",
+        embed=embed)
+
+
 class TwitchCmds(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -80,21 +127,16 @@ class TwitchCmds(commands.Cog):
         self.settings = {}
         self.load_settings()  # load settings from json file
 
-    @cog_ext.cog_subcommand(
-        base="twitch",
-        name="add",
-        description="Add a broadcaster to the list",
-        options=[
-            create_option(
-                name="name",
-                description="Name of the broadcaster",
-                option_type=3,
-                required=True
-            )
-        ]
-    )
+    # default /twitch command, does nothing without sub-parameter
+    @commands.hybrid_group(name="twitch", description="Manage twitch integration settings")
     @commands.has_permissions(manage_guild=True)
-    async def add_broadcaster(self, ctx: SlashContext, name: str):
+    async def twitch(self, ctx: Context):
+        return
+
+    @twitch.command(name="add", description="Add a broadcaster to the list of streams")
+    @app_commands.describe(name="Name of the broadcaster")
+    @commands.has_permissions(manage_guild=True)
+    async def add_broadcaster(self, ctx: Context, name: str):
         # get guild
         guild_id = str(ctx.guild.id)
 
@@ -107,30 +149,19 @@ class TwitchCmds(commands.Cog):
 
         # check if this streamer is already in the list
         if "names" in self.settings[guild_id] and name in self.settings[guild_id]["names"]:
-            await ctx.send(f"> {name} is already in the list of broadcasters.")
+            await ctx.send(f"> `{name}` is already in the list of broadcasters.")
         # else assume this streamer is not in the list yet
         else:
             self.settings[guild_id].setdefault("names", []).append(name)
-            await ctx.send(f"> Added {name} to the list of broadcasters to check.")
+            await ctx.send(f"> Added `{name}` to the list of broadcasters to check.")
 
         # save settings
         self.save_settings()
 
-    @cog_ext.cog_subcommand(
-        base="twitch",
-        name="remove",
-        description="Remove a broadcaster from the list",
-        options=[
-            create_option(
-                name="name",
-                description="Name of the broadcaster",
-                option_type=3,
-                required=True
-            )
-        ]
-    )
+    @twitch.command(name="remove", description="Remove a broadcaster from the list")
+    @app_commands.describe(name="Name of the broadcaster")
     @commands.has_permissions(manage_guild=True)
-    async def remove_broadcaster(self, ctx: SlashContext, name: str):
+    async def remove_broadcaster(self, ctx: Context, name: str):
         # get guild
         guild_id = str(ctx.guild.id)
 
@@ -144,42 +175,27 @@ class TwitchCmds(commands.Cog):
         # check if this streamer is already in the list
         if "names" in self.settings[guild_id] and name in self.settings[guild_id]["names"]:
             self.settings[guild_id]["names"].remove(name)
-            await ctx.send(f"> Removed {name} from the list of broadcasters.")
+            await ctx.send(f"> Removed `{name}` from the list of broadcasters.")
         # else assume this streamer is not in the list yet
         else:
-            await ctx.send(f"> {name} is not in the list of broadcasters.")
+            await ctx.send(f"> `{name}` is not in the list of broadcasters.")
 
         # save settings
         self.save_settings()
 
-    @cog_ext.cog_subcommand(
-        base="twitch",
-        name="list",
-        description="List all broadcasters",
-    )
+    @twitch.command(name="list", description="List all broadcasters")
     @commands.has_permissions(manage_guild=True)
-    async def list_broadcasters_command(self, ctx: SlashContext):
+    async def list_broadcasters_command(self, ctx: Context):
         # get guild
         guild_id = str(ctx.guild.id)
 
         # list broadcasters
         await self.list_broadcasters(ctx, guild_id)
 
-    @cog_ext.cog_subcommand(
-        base="twitch",
-        name="setchannel",
-        description="Set the announcement channel",
-        options=[
-            create_option(
-                name="channel_id",
-                description="Channel ID for announcements",
-                option_type=7,
-                required=True
-            )
-        ]
-    )
+    @twitch.command(name="setchannel", description="Designate the channel for announcements")
+    @app_commands.describe(channel_id="ID of the channel to send announcements to")
     @commands.has_permissions(manage_guild=True)
-    async def set_announcement_channel(self, ctx: SlashContext, channel_id):
+    async def set_announcement_channel(self, ctx: Context, channel_id):
         # get guild
         guild_id = str(ctx.guild.id)
 
@@ -194,21 +210,10 @@ class TwitchCmds(commands.Cog):
         await ctx.send(f"> Set announcement channel to <#{channel_id.id}>.")
         self.save_settings()
 
-    @cog_ext.cog_subcommand(
-        base="twitch",
-        name="force",
-        description="Force an announcement for a broadcaster",
-        options=[
-            create_option(
-                name="name",
-                description="Name of the broadcaster",
-                option_type=3,
-                required=True
-            )
-        ]
-    )
+    @twitch.command(name="force", description="Forces an announcement for a broadcaster in the designated channel")
+    @app_commands.describe(name="Name of the broadcaster")
     @commands.has_permissions(manage_guild=True)
-    async def force_announcement_command(self, ctx: SlashContext, name: str):
+    async def force_announcement_command(self, ctx: Context, name: str):
         # get guild
         guild_id = str(ctx.guild.id)
 
@@ -226,7 +231,7 @@ class TwitchCmds(commands.Cog):
             await self.force_announcement(ctx, guild_id, name)
         # else assume this streamer is not in the list yet
         else:
-            await ctx.send(f"{name} is not in the list of broadcasters.")
+            await ctx.send(f"`{name}` is not in the list of broadcasters.")
 
         # save settings
         self.save_settings()
@@ -327,141 +332,46 @@ class TwitchCmds(commands.Cog):
         else:
             await ctx.send("> There are no broadcasters set to check for this guild.")
 
+    # forces an announcement for a specific broadcaster
     async def force_announcement(self, ctx, guild_id, broadcaster_name):
-        # check if we have a channel ID set for this guild
+        # check that a channel ID has been set
         if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
-            # get channel
             channel_id = self.settings[guild_id]["channel_id"]
             channel = self.bot.get_channel(channel_id)
 
-            # make sure this is a real channel
             if channel:
-                # set up get request
                 url = "https://api.twitch.tv/helix/streams"
-                params = {
-                    "user_login": broadcaster_name
-                }
+                params = {"user_login": broadcaster_name}
                 headers = {
                     "Client-ID": self.twitch_client_id,
                     "Authorization": f"Bearer {self.twitch_access_token}"
                 }
 
-                # send request
                 response = requests.get(url, params=params, headers=headers)
                 data = response.json()
 
-                # check for data
                 if data["data"]:
-                    # get data
                     stream_data = data["data"][0]
-                    stream_title = stream_data["title"]
-                    stream_url = f"https://www.twitch.tv/{broadcaster_name}"
-                    viewer_count = stream_data["viewer_count"]
-                    game_name = stream_data["game_name"]
-
-                    # set up embed
-                    embed = discord.Embed(
-                        title=f"**{stream_title}**",
-                        url=stream_url,
-                        color=discord.Color.red()
-                    )
-                    embed.set_author(name=stream_data['user_name'])
-                    if stream_data['user_name'] == 'xFlxZh':
-                        # set custom thumbnail for flazh...
-                        embed.set_image(
-                            url='https://media.discordapp.net/attachments/1049713626895896686/1245587352693379154/live'
-                                'now.png?ex=66cdf7de&is=66cca65e&hm=3b0c29d57726e493805c28cacd4e81c400e549650bf3ced52'
-                                '2068d2a0cabdc66&=&format=webp&quality=lossless&width=550&height=309'.replace
-                            ("{width}", "320").replace("{height}", "180"))
-                    else:
-                        # default to Twitch stream thumbnail
-                        embed.set_image(
-                            url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
-                    embed.set_thumbnail(url='https://media.discordapp.net/attachments/1049713626895896686/124558727353'
-                                            '8605117/newlogo.png?ex=66cdf7cb&is=66cca64b&hm=3a39e66fa6fbdce183d99f9f561'
-                                            '6ff24a2d357421bb52911b286ad2e6e586ac1&=&format=webp&quality=lossless&widt'
-                                            'h=920&height=460')
-                    embed.add_field(name="Viewers", value=viewer_count, inline=False)
-                    embed.add_field(name="Game", value=game_name, inline=False)
-
-                    # get mst current time
-                    mst_timezone = pytz.timezone('America/Phoenix')
-                    mst_now = datetime.now(tz=mst_timezone)
-                    embed.set_footer(text="Twitch • " + mst_now.strftime("%m/%d/%Y %I:%M %p"),
-                                     icon_url="https://cdn-longterm.mee6.xyz/plugins"
-                                              "/twitch/logo.png")
-
-                    # send the message
-                    await channel.send(
-                        f"Hey @everyone, {stream_data['user_name']} is now live on Twitch! Come and support the stream! Leave a comment and chat with them!",
-                        embed=embed)
+                    await send_announcement(channel, stream_data)
                 else:
-                    # assume there is no stream available
-                    await ctx.send(f"> {broadcaster_name} is currently offline.")
+                    await ctx.send(f"> `{broadcaster_name}` is currently offline.")
             else:
-                # assume there is no channel set yet
                 await ctx.send("> Announcement channel has not been set.")
 
     async def send_live_stream_message(self, guild_id, stream_data):
-        # check if we have a channel ID set for this guild
         if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
-            # get channel
             channel_id = self.settings[guild_id]["channel_id"]
             channel = self.bot.get_channel(channel_id)
 
-            # make sure this is a real channel
             if channel:
-                # check that we have not made an announcement for this broadcaster within the last 6 hrs
-                # regardless of how many streams that start within that period (one per broadcaster every 6hr)
                 broadcaster_name = stream_data["user_name"]
                 current_time = datetime.now()
                 last_announcement_time = self.streams.get(guild_id, {}).get(broadcaster_name)
+
                 if not last_announcement_time or (current_time - last_announcement_time) > timedelta(hours=6):
-                    # assume no message has been sent for this specific streamer yet
-                    stream_title = stream_data["title"]
-                    stream_url = f"https://www.twitch.tv/{stream_data['user_name']}"
-                    viewer_count = stream_data["viewer_count"]
-                    game_name = stream_data["game_name"]
-
-                    # set up embed
-                    embed = discord.Embed(
-                        title=f"**{stream_title}**",  # Display name as title
-                        url=stream_url,
-                        color=discord.Color.red()
-                    )
-                    embed.set_author(name=stream_data['user_name'])
-                    if stream_data['user_name'] == 'xFlxZh':
-                        # set custom thumbnail for flazh...
-                        embed.set_image(
-                            url='https://media.discordapp.net/attachments/1049713626895896686/1245587352693379154/live'
-                                'now.png?ex=66cdf7de&is=66cca65e&hm=3b0c29d57726e493805c28cacd4e81c400e549650bf3ced52'
-                                '2068d2a0cabdc66&=&format=webp&quality=lossless&width=550&height=309'.replace
-                                ("{width}", "320").replace("{height}", "180"))
-                    else:
-                        # default to Twitch stream thumbnail
-                        embed.set_image(
-                            url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
-
-                    embed.set_thumbnail(url='https://media.discordapp.net/attachments/1049713626895896686/124558727353'
-                                            '8605117/newlogo.png?ex=66cdf7cb&is=66cca64b&hm=3a39e66fa6fbdce183d99f9f561'
-                                            '6ff24a2d357421bb52911b286ad2e6e586ac1&=&format=webp&quality=lossless&widt'
-                                            'h=920&height=460')
-                    embed.add_field(name="Viewers", value=viewer_count, inline=False)
-                    embed.add_field(name="Game", value=game_name, inline=False)
-
-                    # get mst current time
-                    mst_timezone = pytz.timezone('America/Phoenix')
-                    mst_now = datetime.now(tz=mst_timezone)
-                    embed.set_footer(text="Twitch • " + mst_now.strftime("%m/%d/%Y %I:%M %p"),
-                                     icon_url="https://cdn-longterm.mee6.xyz/plugins"
-                                              "/twitch/logo.png")
-
-                    # send the message
-                    await channel.send(
-                        f"Hey @everyone, {stream_data['user_name']} is now live on Twitch! Come and support the stream! Leave a comment and chat with them!",
-                        embed=embed)
+                    await send_announcement(channel, stream_data)
                     self.streams.setdefault(guild_id, {})[broadcaster_name] = current_time
 
 
-def setup(bot):
-    bot.add_cog(TwitchCmds(bot))
+async def setup(bot):
+    await bot.add_cog(TwitchCmds(bot))

@@ -1,6 +1,5 @@
 import discord
 import random
-import pytz
 from typing import Optional
 from discord import NotFound, Forbidden, HTTPException
 from discord import app_commands

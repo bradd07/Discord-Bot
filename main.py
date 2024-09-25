@@ -1,19 +1,23 @@
+import asyncio
 import discord
 import os
-from discord_slash import SlashCommand
 from discord.ext import commands
 from dotenv import load_dotenv
 from cmds.TwitchCmds import TwitchCmds
 
-client = commands.Bot(command_prefix='/', intents=discord.Intents.all())
-slash = SlashCommand(client, sync_commands=True)
+"""
+Main file for the bot. Loads commands and starts the bot
+Author: bradd07
+"""
 
-# load cogs
-client.load_extension("cmds.RegCmds")
-client.load_extension("cmds.PointsCmds")
-client.load_extension("cmds.OverwatchCmds")
-client.load_extension("cmds.TwitchCmds")
-client.load_extension("cmds.ReactionRole")
+# instantiate bot
+client = commands.AutoShardedBot(command_prefix='/', intents=discord.Intents.all())
+
+
+async def load_cogs():
+    for filename in os.listdir("./cmds"):
+        if filename.endswith(".py"):
+            await client.load_extension(f"cmds.{filename[:-3]}")
 
 
 @client.event
@@ -22,7 +26,19 @@ async def on_ready():
     await client.change_presence(activity=discord.Game(name="@brad.dev"))
     # Start checking Twitch streams
     twitch_cmds = TwitchCmds(client)
-    client.loop.create_task(twitch_cmds.check_streams())
+    await client.loop.create_task(twitch_cmds.check_streams())
+
+
+async def main():
+    # load environment variables
+    load_dotenv()
+
+    try:
+        # await load_cogs()
+        bot_token = os.getenv("BOT_TOKEN")
+        await client.start(f"{bot_token}")
+    except Exception as e:
+        print(f"Bot has shut down due to Exception: {e}\n")
 
 
 @client.event
@@ -39,8 +55,13 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandNotFound):
         await ctx.send("That doesn't seem to be a real command. Try again!", hidden=True)
 
-
-load_dotenv()
-bot_token = os.getenv("BOT_TOKEN")
-slash.on_slash_command_error = on_command_error
-client.run(f"{bot_token}")
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(main())
+    except KeyboardInterrupt:
+        print("Pegasus has shut down gracefully by the user..\n")
+    except Exception as e:
+        print(f"Unhandled Exception: {e}\n")
+    finally:
+        loop.close()

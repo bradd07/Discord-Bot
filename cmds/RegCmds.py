@@ -79,10 +79,6 @@ class RegCommands(commands.Cog):
             await ctx.send("Please provide at least two choices for the poll.", ephemeral=True)
             return
 
-        # get current time
-        mst_timezone = pytz.timezone('America/Phoenix')
-        current_time = datetime.now(tz=mst_timezone)
-
         # create the poll message
         emoji_list = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
         poll_message = "\n".join(f"{emoji}: {choice}" for emoji, choice in zip(emoji_list, choices) if choice)
@@ -92,8 +88,9 @@ class RegCommands(commands.Cog):
             color=discord.Color.dark_blue(),
             description=poll_message
         )
+        embed.timestamp = datetime.now()
         embed.set_footer(
-            text=f"Poll created by {ctx.author.display_name} • {current_time.strftime('%m/%d/%Y %I:%M %p')}")
+            text=f"Poll created by {ctx.author.display_name}")
 
         await ctx.send("> :white_check_mark: Poll created.", ephemeral=True)
         poll = await ctx.send(embed=embed)

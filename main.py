@@ -24,6 +24,7 @@ async def load_cogs():
 async def on_ready():
     # set status
     await client.change_presence(activity=discord.Game(name="@brad.dev"))
+    await client.tree.sync()
     # Start checking Twitch streams
     twitch_cmds = TwitchCmds(client)
     await client.loop.create_task(twitch_cmds.check_streams())
@@ -35,6 +36,7 @@ async def main():
 
     try:
         # await load_cogs()
+        await client.load_extension("cmds.RegCmds")
         bot_token = os.getenv("BOT_TOKEN")
         await client.start(f"{bot_token}")
     except Exception as e:
@@ -60,7 +62,7 @@ if __name__ == "__main__":
     try:
         loop.run_until_complete(main())
     except KeyboardInterrupt:
-        print("Pegasus has shut down gracefully by the user..\n")
+        print("Brad's bot has shut down gracefully by the user..\n")
     except Exception as e:
         print(f"Unhandled Exception: {e}\n")
     finally:

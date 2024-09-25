@@ -210,6 +210,7 @@ class TwitchCmds(commands.Cog):
         await ctx.send(f"> Set announcement channel to <#{channel_id.id}>.")
         self.save_settings()
 
+    # used to force an announcement for a streamer, ignoring the 6hr rule for automatic broadcasts
     @twitch.command(name="force", description="Forces an announcement for a broadcaster in the designated channel")
     @app_commands.describe(name="Name of the broadcaster")
     @commands.has_permissions(manage_guild=True)
@@ -231,7 +232,7 @@ class TwitchCmds(commands.Cog):
             await self.force_announcement(ctx, guild_id, name)
         # else assume this streamer is not in the list yet
         else:
-            await ctx.send(f"`{name}` is not in the list of broadcasters.")
+            await ctx.send(f"`{name}` is not in the list of broadcasters. Use `/twitch add` to add this streamer.")
 
         # save settings
         self.save_settings()
@@ -317,6 +318,7 @@ class TwitchCmds(commands.Cog):
                         # try to send message
                         await self.send_live_stream_message(guild_id, data["data"][0])
 
+    # helper function for /twitch list command
     async def list_broadcasters(self, ctx, guild_id):
         # check if there are broadcasters set
         if "names" in self.settings[guild_id]:
@@ -336,10 +338,12 @@ class TwitchCmds(commands.Cog):
     async def force_announcement(self, ctx, guild_id, broadcaster_name):
         # check that a channel ID has been set
         if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
+            # get the channel ID for this guild
             channel_id = self.settings[guild_id]["channel_id"]
             channel = self.bot.get_channel(channel_id)
 
             if channel:
+                # set up request to API
                 url = "https://api.twitch.tv/helix/streams"
                 params = {"user_login": broadcaster_name}
                 headers = {
@@ -347,19 +351,26 @@ class TwitchCmds(commands.Cog):
                     "Authorization": f"Bearer {self.twitch_access_token}"
                 }
 
+                # send request
                 response = requests.get(url, params=params, headers=headers)
                 data = response.json()
 
                 if data["data"]:
+                    # if stream data is available, send the announcement
                     stream_data = data["data"][0]
                     await send_announcement(channel, stream_data)
                 else:
+                    # if no data exists, the user is offline
                     await ctx.send(f"> `{broadcaster_name}` is currently offline.")
             else:
-                await ctx.send("> Announcement channel has not been set.")
+                # if channel does not exist, no channel is set yet
+                await ctx.send(f"> Announcement channel has not been set yet. Use `/twitch setchannel` to get started.")
 
+    # sends the automatic live stream message for broadcasters in the list
+    # NOTE: to limit pings, it is one broadcast per streamer every 6hrs
     async def send_live_stream_message(self, guild_id, stream_data):
         if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
+            # get specified channel ID for this guild
             channel_id = self.settings[guild_id]["channel_id"]
             channel = self.bot.get_channel(channel_id)
 
@@ -368,6 +379,7 @@ class TwitchCmds(commands.Cog):
                 current_time = datetime.now()
                 last_announcement_time = self.streams.get(guild_id, {}).get(broadcaster_name)
 
+                # check for an announcement for this specific streamer within the last 6hrs
                 if not last_announcement_time or (current_time - last_announcement_time) > timedelta(hours=6):
                     await send_announcement(channel, stream_data)
                     self.streams.setdefault(guild_id, {})[broadcaster_name] = current_time

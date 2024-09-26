@@ -4,10 +4,9 @@ import os
 import time
 import discord
 import random
+from discord import app_commands
 from discord.ext import commands
-from discord_slash import cog_ext
-from discord_slash.context import SlashContext
-from discord_slash.utils.manage_commands import create_option
+from discord.ext.commands import Context
 
 """
 Cog for the points commands.
@@ -31,8 +30,8 @@ class Points(commands.Cog):
             with open(self.points_file, "w") as f:
                 json.dump(self.points_data, f)
 
-    @cog_ext.cog_slash(name="points", description="Displays the user's current amount of points on that guild")
-    async def display_points(self, ctx: SlashContext, user: discord.User = None):
+    @commands.hybrid_command(name="points", description="Displays the user's current amount of points")
+    async def display_points(self, ctx: Context, user: discord.User = None):
         # if user is not specified, assume they want their own points
         if user is None:
             user = ctx.author
@@ -54,24 +53,13 @@ class Points(commands.Cog):
         points = self.points_data[guild_id][user_id]
 
         # notify
-        await ctx.send(f"> {user.display_name} has {points} points.")
+        await ctx.send(f"> `{user.display_name}` has `{points}` points.")
 
-    @cog_ext.cog_slash(name="setpoints", description="Set the amount of points a user has", options=[
-        create_option(
-            name="user",
-            description="The user you want to set points for",
-            option_type=6,
-            required=True
-        ),
-        create_option(
-            name="points",
-            description="The amount of points you want to set",
-            option_type=4,
-            required=True
-        )
-    ])
+    @commands.hybrid_command(name="setpoints", description="Manually set the amount of points a user has")
+    @app_commands.describe(user="The user you want to modify the points of", points="The amount of points you want to "
+                                                                                    "set to")
     @commands.has_permissions(manage_guild=True)
-    async def set_points(self, ctx: SlashContext, user: discord.User, points: int):
+    async def set_points(self, ctx: Context, user: discord.User, points: int):
         # make sure we have strings
         user_id = str(user.id)
         guild_id = str(ctx.guild.id)
@@ -88,25 +76,13 @@ class Points(commands.Cog):
             json.dump(self.points_data, f)
 
         # notify
-        await ctx.send(f"> {user.display_name} now has {points} points.")
+        await ctx.send(f"> `{user.display_name}` now has `{points}` points.", ephemeral=True)
 
-    @cog_ext.cog_slash(name="addpoints", description="Adds points to the specified user's current total in that guild",
-                       options=[
-                           create_option(
-                               name="user",
-                               description="The user you want to add points to",
-                               option_type=6,
-                               required=True
-                           ),
-                           create_option(
-                               name="amount",
-                               description="The amount of points you want to add",
-                               option_type=4,
-                               required=True
-                           )
-                       ])
+    @commands.hybrid_command(name="addpoints", description="Adds points to the specified user's current total")
+    @app_commands.describe(user="The user you want to modify the points of", amount="The amount of points you want to "
+                                                                                    "add")
     @commands.has_permissions(manage_guild=True)
-    async def add_points(self, ctx: SlashContext, user: discord.User, amount: int):
+    async def add_points(self, ctx: Context, user: discord.User, amount: int):
         # make sure we have strings
         user_id = str(user.id)
         guild_id = str(ctx.guild.id)
@@ -129,27 +105,16 @@ class Points(commands.Cog):
             json.dump(self.points_data, f)
 
         # notify
-        await ctx.send(f"> {user.display_name} now has {new_points} points (added {amount} points).")
+        await ctx.send(f"> `{user.display_name}` now has `{new_points}` points (added `{amount}` points).",
+                       ephemeral=True)
 
-    @cog_ext.cog_slash(name="givepoints", description="Give some of your points to another player in the same guild",
-                       options=[
-                           create_option(
-                               name="user",
-                               description="The user you want to give points to",
-                               option_type=6,
-                               required=True
-                           ),
-                           create_option(
-                               name="amount",
-                               description="The amount of points you want to give",
-                               option_type=4,
-                               required=True
-                           )
-                       ])
-    async def give_points(self, ctx: SlashContext, user: discord.User, amount: int):
+    @commands.hybrid_command(name="givepoints", description="Give some of your points to another player")
+    @app_commands.describe(user="The user you want to give your points to", amount="The amount of points you want to "
+                                                                                   "give")
+    async def give_points(self, ctx: Context, user: discord.User, amount: int):
         # check for invalid amount
         if amount <= 0:
-            await ctx.send("> The amount of points must be greater than 0.")
+            await ctx.send("> The amount of points must be greater than 0.", ephemeral=True)
             return
 
         # make sure we have strings
@@ -168,7 +133,7 @@ class Points(commands.Cog):
 
         # check if the sender does not have enough funds
         if self.points_data[guild_id][author_id] < amount:
-            await ctx.send("> You don't have enough points to give.")
+            await ctx.send("> You don't have enough points to give.", ephemeral=True)
             return
 
         # check if the specified user is saved yet
@@ -187,10 +152,10 @@ class Points(commands.Cog):
 
         # notify
         await ctx.send(
-            f"> You gave {amount} points to {user.display_name}. {user.display_name} now has {new_points} points.")
+            f"> You gave `{amount}` points to `{user.display_name}`. They now have `{new_points}` points.")
 
-    @cog_ext.cog_slash(name="leaderboard", description="Displays the top 5 users with the most points in that guild")
-    async def leaderboard(self, ctx: SlashContext):
+    @commands.hybrid_command(name="leaderboard", description="Displays the top 5 users with the most points")
+    async def leaderboard(self, ctx: Context):
         # get guild
         guild_id = str(ctx.guild.id)
 
@@ -214,9 +179,11 @@ class Points(commands.Cog):
         # send the message
         await ctx.send(embed=leaderboard_embed)
 
-    @cog_ext.cog_slash(name="raffle", description="Create a raffle for free points")
+    @commands.hybrid_command(name="raffle", description="Create a raffle for free points!")
+    @app_commands.describe(amount="The amount of points you want to give away", duration="How long to run the raffle "
+                                                                                         "for (in seconds)")
     @commands.has_permissions(manage_guild=True)
-    async def create_raffle(self, ctx: SlashContext, amount: int, duration: int):
+    async def create_raffle(self, ctx: Context, amount: int, duration: int):
         # get guild
         guild_id = str(ctx.guild.id)
 
@@ -227,12 +194,12 @@ class Points(commands.Cog):
 
         # check if this guild has an active raffle
         if self.raffles[guild_id]["active"]:
-            await ctx.send("> There is already an ongoing raffle in this guild.")
+            await ctx.send("> There is already an ongoing raffle in this guild.", ephemeral=True)
             return
 
         # check for invalid amount/duration
         if amount <= 0 or duration <= 0:
-            await ctx.send("> Please provide a valid amount and duration.")
+            await ctx.send("> Please provide a valid amount and duration.", ephemeral=True)
             return
 
         # save values
@@ -242,7 +209,7 @@ class Points(commands.Cog):
         self.raffles[guild_id]["participants"] = []
 
         # notify
-        await ctx.send(f"A raffle for {amount} points has been created. Type /join to participate!")
+        await ctx.send(f"A raffle for `{amount}` points has been created. Type /join to participate!")
 
         # wait until we have reached the end time
         while time.time() < self.raffles[guild_id]["end_time"]:
@@ -281,16 +248,18 @@ class Points(commands.Cog):
             json.dump(self.points_data, f)
 
         # notify winner
-        await ctx.send(f"{winner.display_name} won the raffle and got {self.raffles[guild_id]['amount']} points!")
+        await ctx.send(f"> `{winner.display_name}` won the raffle and received `{self.raffles[guild_id]['amount']}` "
+                       f"points!")
+        self.raffles.pop(guild_id)
 
-    @cog_ext.cog_slash(name="join", description="Join the ongoing raffle in that guild")
-    async def join_raffle(self, ctx: SlashContext):
+    @commands.hybrid_command(name="join", description="Join the ongoing raffle (if there is one)")
+    async def join_raffle(self, ctx: Context):
         # get guild
         guild_id = str(ctx.guild.id)
 
-        # make sure there is an ongoing raffle
+        # make sure there is not a raffle
         if guild_id not in self.raffles:
-            await ctx.send("> There is no ongoing raffle in this server.")
+            await ctx.send("> There is no ongoing raffle in this server.", ephemeral=True)
             return
 
         # get the raffle for this guild
@@ -298,13 +267,13 @@ class Points(commands.Cog):
 
         # make sure they haven't already joined this raffle
         if ctx.author in raffle["participants"]:
-            await ctx.send("> You have already joined the raffle.")
+            await ctx.send("> You have already joined the raffle.", ephemeral=True)
             return
 
         # add the user to the raffle, notify
         raffle["participants"].append(ctx.author)
-        await ctx.send(f"> {ctx.author.display_name} has joined the raffle.")
+        await ctx.send(f"> `{ctx.author.display_name}` has joined the raffle.")
 
 
-def setup(bot):
-    bot.add_cog(Points(bot))
+async def setup(bot):
+    await bot.add_cog(Points(bot))

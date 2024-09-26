@@ -38,6 +38,7 @@ async def main():
         # await load_cogs()
         await client.load_extension("cmds.RegCmds")
         await client.load_extension("cmds.TwitchCmds")
+        await client.load_extension("cmds.PointsCmds")
         bot_token = os.getenv("BOT_TOKEN")
         await client.start(f"{bot_token}")
     except Exception as e:

@@ -386,8 +386,25 @@ class TwitchCmds(commands.Cog):
                     # check if we haven't announced this stream by ID
                     if stream_id not in self.streams.get(guild_id, {}):
                         self.streams.setdefault(guild_id, {})[stream_id] = datetime.now()
+
                         # try to send message
-                        await self.send_live_stream_message(guild_id, data["data"][0])
+                        stream_data = data["data"][0]
+                        if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
+                            # get specified channel ID for this guild
+                            channel_id = self.settings[guild_id]["channel_id"]
+                            channel = self.bot.get_channel(channel_id)
+
+                            # make sure channel exists
+                            if channel:
+                                broadcaster_name = stream_data["user_name"]
+                                current_time = datetime.now()
+                                last_announcement_time = self.streams.get(guild_id, {}).get(broadcaster_name)
+
+                                # check for an announcement for this specific streamer within the last 6hrs
+                                if not last_announcement_time or (current_time - last_announcement_time) > timedelta(
+                                        hours=6):
+                                    await self.send_announcement(channel, stream_data, guild_id)
+                                    self.streams.setdefault(guild_id, {})[broadcaster_name] = current_time
 
     # helper function for /twitch list command
     async def list_broadcasters(self, ctx, guild_id):
@@ -484,24 +501,6 @@ class TwitchCmds(commands.Cog):
             else:
                 # if channel does not exist, no channel is set yet
                 await ctx.send(f"> Announcement channel has not been set yet. Use `/twitch setchannel` to get started.")
-
-    # sends the automatic live stream message for broadcasters in the list
-    # NOTE: to limit pings, it is one broadcast per streamer every 6hrs
-    async def send_live_stream_message(self, guild_id, stream_data):
-        if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
-            # get specified channel ID for this guild
-            channel_id = self.settings[guild_id]["channel_id"]
-            channel = self.bot.get_channel(channel_id)
-
-            if channel:
-                broadcaster_name = stream_data["user_name"]
-                current_time = datetime.now()
-                last_announcement_time = self.streams.get(guild_id, {}).get(broadcaster_name)
-
-                # check for an announcement for this specific streamer within the last 6hrs
-                if not last_announcement_time or (current_time - last_announcement_time) > timedelta(hours=6):
-                    await self.send_announcement(channel, stream_data, guild_id)
-                    self.streams.setdefault(guild_id, {})[broadcaster_name] = current_time
 
 
 async def setup(bot):

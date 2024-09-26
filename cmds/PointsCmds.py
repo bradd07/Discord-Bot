@@ -30,6 +30,10 @@ class Points(commands.Cog):
             with open(self.points_file, "w") as f:
                 json.dump(self.points_data, f)
 
+    async def save_points(self):
+        with open(self.points_file, "w") as file:
+            json.dump(self.points_data, file)
+
     @commands.hybrid_command(name="points", description="Displays the user's current amount of points")
     async def display_points(self, ctx: Context, user: discord.User = None):
         # if user is not specified, assume they want their own points
@@ -56,10 +60,10 @@ class Points(commands.Cog):
         await ctx.send(f"> `{user.display_name}` has `{points}` points.")
 
     @commands.hybrid_command(name="setpoints", description="Manually set the amount of points a user has")
-    @app_commands.describe(user="The user you want to modify the points of", points="The amount of points you want to "
-                                                                                    "set to")
+    @app_commands.describe(user="The user you want to modify the points of",
+                           amount="The amount of points you want to their total to be")
     @commands.has_permissions(manage_guild=True)
-    async def set_points(self, ctx: Context, user: discord.User, points: int):
+    async def set_points(self, ctx: Context, user: discord.User, amount: int):
         # make sure we have strings
         user_id = str(user.id)
         guild_id = str(ctx.guild.id)
@@ -69,18 +73,17 @@ class Points(commands.Cog):
             self.points_data[guild_id] = {}
 
         # set points
-        self.points_data[guild_id][user_id] = points
+        self.points_data[guild_id][user_id] = amount
 
         # write to file
-        with open(self.points_file, "w") as f:
-            json.dump(self.points_data, f)
+        await self.save_points()
 
         # notify
-        await ctx.send(f"> `{user.display_name}` now has `{points}` points.", ephemeral=True)
+        await ctx.send(f"> `{user.display_name}` now has `{amount}` points.", ephemeral=True)
 
-    @commands.hybrid_command(name="addpoints", description="Adds points to the specified user's current total")
-    @app_commands.describe(user="The user you want to modify the points of", amount="The amount of points you want to "
-                                                                                    "add")
+    @commands.hybrid_command(name="addpoints", description="Adds points to a user's current total")
+    @app_commands.describe(user="The user you want to modify the points of",
+                           amount="The amount of points you want to add to their total")
     @commands.has_permissions(manage_guild=True)
     async def add_points(self, ctx: Context, user: discord.User, amount: int):
         # make sure we have strings
@@ -101,16 +104,15 @@ class Points(commands.Cog):
         new_points = self.points_data[guild_id][user_id]
 
         # write to file
-        with open(self.points_file, "w") as f:
-            json.dump(self.points_data, f)
+        await self.save_points()
 
         # notify
         await ctx.send(f"> `{user.display_name}` now has `{new_points}` points (added `{amount}` points).",
                        ephemeral=True)
 
     @commands.hybrid_command(name="givepoints", description="Give some of your points to another player")
-    @app_commands.describe(user="The user you want to give your points to", amount="The amount of points you want to "
-                                                                                   "give")
+    @app_commands.describe(user="The user you want to give your points to",
+                           amount="The amount of points you want to give")
     async def give_points(self, ctx: Context, user: discord.User, amount: int):
         # check for invalid amount
         if amount <= 0:
@@ -136,7 +138,7 @@ class Points(commands.Cog):
             await ctx.send("> You don't have enough points to give.", ephemeral=True)
             return
 
-        # check if the specified user is saved yet
+        # check if the recipient is saved yet
         if user_id not in self.points_data[guild_id]:
             # set default
             self.points_data[guild_id][user_id] = 0
@@ -147,8 +149,7 @@ class Points(commands.Cog):
         new_points = self.points_data[guild_id][user_id]
 
         # write to file
-        with open(self.points_file, "w") as f:
-            json.dump(self.points_data, f)
+        await self.save_points()
 
         # notify
         await ctx.send(
@@ -180,8 +181,8 @@ class Points(commands.Cog):
         await ctx.send(embed=leaderboard_embed)
 
     @commands.hybrid_command(name="raffle", description="Create a raffle for free points!")
-    @app_commands.describe(amount="The amount of points you want to give away", duration="How long to run the raffle "
-                                                                                         "for (in seconds)")
+    @app_commands.describe(amount="The amount of points you want to give away",
+                           duration="How long to run the raffle for (in seconds)")
     @commands.has_permissions(manage_guild=True)
     async def create_raffle(self, ctx: Context, amount: int, duration: int):
         # get guild
@@ -244,8 +245,7 @@ class Points(commands.Cog):
         self.points_data[guild_id][user_id] += self.raffles[guild_id]["amount"]
 
         # write to file
-        with open(self.points_file, "w") as f:
-            json.dump(self.points_data, f)
+        await self.save_points()
 
         # notify winner
         await ctx.send(f"> `{winner.display_name}` won the raffle and received `{self.raffles[guild_id]['amount']}` "

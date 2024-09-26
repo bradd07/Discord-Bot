@@ -168,16 +168,21 @@ class Points(commands.Cog):
         sorted_users = sorted(self.points_data[guild_id].items(), key=lambda x: x[1], reverse=True)[:5]
 
         # create a nicely formatted leaderboard embed
-        leaderboard_embed = discord.Embed(title="Leaderboard")
+        leaderboard_embed = discord.Embed(title="Points Leaderboard", color=discord.Color.dark_blue())
         for i, (user_id, points) in enumerate(sorted_users):
             try:
                 user = await self.bot.fetch_user(int(user_id))
-                leaderboard_embed.add_field(name=f"**@{user.display_name}**", value=f"{points} points",
-                                            inline=False)
+                leaderboard_embed.add_field(name=f"", value=f"{i + 1}. <@{user.id}> · {points} points", inline=False)
             except discord.NotFound:
                 leaderboard_embed.add_field(name=f"Unknown User", value=f"{points} points", inline=False)
 
         # send the message
+        if ctx.guild.icon:
+            # attempt to use the current guild's icon
+            leaderboard_embed.set_thumbnail(url=ctx.guild.icon.url)
+        else:
+            # use default Status brand
+            leaderboard_embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
         await ctx.send(embed=leaderboard_embed)
 
     @commands.hybrid_command(name="raffle", description="Create a raffle for free points!")

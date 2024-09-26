@@ -88,6 +88,12 @@ class RegCommands(commands.Cog):
             description=poll_message
         )
         embed.timestamp = datetime.now()
+        if ctx.guild.icon:
+            # attempt to use the current guild's icon
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        else:
+            # use default Status brand
+            embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
         embed.set_footer(
             text=f"Poll created by {ctx.author.display_name}")
 

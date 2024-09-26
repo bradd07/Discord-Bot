@@ -9,6 +9,7 @@ from discord.ext.commands import Context
 from dotenv import load_dotenv
 import os
 import pytz
+from colorama import Back, Fore, Style
 
 """
 Cog for twitch announcement commands.
@@ -43,12 +44,12 @@ def get_oauth_token():
             return data['access_token']
         else:
             # nay
-            print("Error:", data.get('message', 'Failed to get access token'))
+            print(f"{timestamp()} Error: {data.get('message', 'Failed to get access token')}")
             return None
 
     # catch errors
     except requests.RequestException as e:
-        print("Error:", e)
+        print(f"{timestamp()} Error: {e}")
         return None
 
 
@@ -114,6 +115,12 @@ async def send_announcement(channel, stream_data):
     await channel.send(
         f"Hey @everyone, {broadcaster_name} is now live on Twitch! Come and support the stream! Leave a comment and chat with them!",
         embed=embed)
+
+
+def timestamp():
+    return (Back.BLACK + Fore.GREEN + Style.BRIGHT +
+            datetime.now(pytz.utc).astimezone(pytz.timezone('US/Arizona')).strftime("%H:%M:%S GMT/PST" +
+                                                                                    Back.RESET + Fore.WHITE))
 
 
 class TwitchCmds(commands.Cog):
@@ -264,13 +271,13 @@ class TwitchCmds(commands.Cog):
 
         # check response
         if response.status_code == 200:
-            print("Token is valid")
+            print(f"{timestamp()} Token is valid")
         else:
-            print("Token is invalid... Generating a new one")
+            print(f"{timestamp()} Token is invalid... Generating a new one")
             token = get_oauth_token()
             if token:
                 # update token
-                print(f"Generated OAuth Access Token: {token}")
+                print(f"{timestamp()} Generated OAuth Access Token: {token}")
                 os.environ['TWITCH_ACCESS_TOKEN'] = token
                 update_env_file('TWITCH_ACCESS_TOKEN', token)
 

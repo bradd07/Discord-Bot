@@ -3,7 +3,7 @@ import discord
 import os
 from discord.ext import commands
 from dotenv import load_dotenv
-from cmds.TwitchCmds import TwitchCmds
+from cmds.TwitchCmds import TwitchCmds, timestamp
 
 """
 Main file for the bot. Loads commands and starts the bot
@@ -40,9 +40,10 @@ async def main():
         await client.load_extension("cmds.TwitchCmds")
         await client.load_extension("cmds.PointsCmds")
         bot_token = os.getenv("BOT_TOKEN")
+        print(f"{timestamp()} Starting up Brad's Bot...")
         await client.start(f"{bot_token}")
     except Exception as e:
-        print(f"Bot has shut down due to Exception: {e}\n")
+        print(f"{timestamp()} Bot has shut down due to Exception: {e}\n")
 
 
 @client.event
@@ -59,13 +60,14 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandNotFound):
         await ctx.send("That doesn't seem to be a real command. Try again!", hidden=True)
 
+
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(main())
     except KeyboardInterrupt:
-        print("Brad's bot has shut down gracefully by the user..\n")
+        print(f"{timestamp()} Brad's bot has shut down gracefully by the user..\n")
     except Exception as e:
-        print(f"Unhandled Exception: {e}\n")
+        print(f"{timestamp()} Unhandled Exception: {e}\n")
     finally:
         loop.close()

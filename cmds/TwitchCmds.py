@@ -113,7 +113,8 @@ async def send_announcement(channel, stream_data):
 
     # send the message
     await channel.send(
-        f"Hey @everyone, {broadcaster_name} is now live on Twitch! Come and support the stream! Leave a comment and chat with them!",
+        f"Hey @everyone, {broadcaster_name} is now live on Twitch! Come and support the stream! Leave a comment and "
+        f"chat with them!",
         embed=embed)
 
 
@@ -337,7 +338,8 @@ class TwitchCmds(commands.Cog):
             broadcasters = "> "
             broadcasters += "\n> ".join(self.settings[guild_id]["names"])
             await ctx.send(
-                f"Current broadcasters set to check for this guild:\n> Announcement Channel: {channel_id}\n{broadcasters}")
+                f"Current broadcasters set to check for this guild:\n> Announcement Channel: "
+                f"{channel_id}\n{broadcasters}")
         else:
             await ctx.send("> There are no broadcasters set to check for this guild.")
 

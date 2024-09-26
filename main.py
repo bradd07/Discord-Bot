@@ -2,6 +2,7 @@ import asyncio
 import discord
 import os
 from discord.ext import commands
+from discord.ext.commands import Context
 from dotenv import load_dotenv
 from cmds.TwitchCmds import TwitchCmds, timestamp
 
@@ -24,8 +25,12 @@ async def load_cogs():
 async def on_ready():
     # set status
     await client.change_presence(activity=discord.Game(name="@brad.dev"))
-    await client.tree.sync()
-    # Start checking Twitch streams
+
+    # sync command tree
+    synced = await client.tree.sync()
+    print(f"{timestamp()} Synced {len(synced)} command(s)!")
+
+    # start checking Twitch streams
     twitch_cmds = TwitchCmds(client)
     await client.loop.create_task(twitch_cmds.check_streams())
 
@@ -35,30 +40,27 @@ async def main():
     load_dotenv()
 
     try:
-        # await load_cogs()
-        await client.load_extension("cmds.RegCmds")
-        await client.load_extension("cmds.TwitchCmds")
-        await client.load_extension("cmds.PointsCmds")
+        await load_cogs()
         bot_token = os.getenv("BOT_TOKEN")
         print(f"{timestamp()} Starting up Brad's Bot...")
         await client.start(f"{bot_token}")
-    except Exception as e:
-        print(f"{timestamp()} Bot has shut down due to Exception: {e}\n")
+    except Exception as error:
+        print(f"{timestamp()} Bot has shut down due to Exception: {error}\n")
 
 
 @client.event
-async def on_command_error(ctx, error):
+async def on_command_error(ctx: Context, error):
     # try to catch any potential errors when running a command
     if isinstance(error, commands.MissingPermissions):
-        await ctx.send("You don't have the permissions to do that!", hidden=True)
+        await ctx.send("You don't have the permissions to do that!", ephemeral=True)
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("Please enter all the required arguments!", hidden=True)
+        await ctx.send("Please enter all the required arguments!", ephemeral=True)
     elif isinstance(error, commands.MemberNotFound):
-        await ctx.send("Member not found, Please mention a valid user!", hidden=True)
+        await ctx.send("Member not found, Please mention a valid user!", ephemeral=True)
     elif isinstance(error, commands.BotMissingPermissions):
-        await ctx.send("I don't have the permissions to do that!", hidden=True)
+        await ctx.send("I don't have the permissions to do that!", ephemeral=True)
     elif isinstance(error, commands.CommandNotFound):
-        await ctx.send("That doesn't seem to be a real command. Try again!", hidden=True)
+        await ctx.send("That doesn't seem to be a real command. Try again!", ephemeral=True)
 
 
 if __name__ == "__main__":

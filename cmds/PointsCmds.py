@@ -32,7 +32,7 @@ class Points(commands.Cog):
 
     async def save_points(self):
         with open(self.points_file, "w") as file:
-            json.dump(self.points_data, file)
+            json.dump(self.points_data, file, indent=4)
 
     @commands.hybrid_command(name="points", description="Displays the user's current amount of points")
     async def display_points(self, ctx: Context, user: discord.User = None):

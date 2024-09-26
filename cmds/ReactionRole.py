@@ -56,7 +56,7 @@ class ReactionRoles(commands.Cog):
     # saves the updated reaction roles data for the given server ID
     async def save_reaction_roles(self, guild_id: str, reaction_roles):
         with open(f"{self.reaction_roles_dir}/{guild_id}.json", "w") as file:
-            json.dump(reaction_roles, file)
+            json.dump(reaction_roles, file, indent=4)
 
     # default /reactionrole command, does nothing without sub-parameter
     @commands.hybrid_group(name="reactionrole", description="Manage reaction roles")

@@ -2,6 +2,7 @@ import asyncio
 import discord
 import os
 from discord.ext import commands
+from discord.ext import tasks
 from discord.ext.commands import Context
 from dotenv import load_dotenv
 from cmds.TwitchCmds import TwitchCmds, timestamp
@@ -26,6 +27,15 @@ async def on_ready():
     # set status
     await client.change_presence(activity=discord.Game(name="@brad.dev"))
 
+
+# task(s) that runs only once after the first on_ready instance -
+# since on_ready can run multiple times, stuff we only want done once
+# goes here
+@tasks.loop(count=1)
+async def wait_until_ready():
+    # wait until very first on_ready event...
+    await client.wait_until_ready()
+
     # sync command tree
     synced = await client.tree.sync()
     print(f"{timestamp()} Synced {len(synced)} command(s)!")
@@ -43,7 +53,9 @@ async def main():
         await load_cogs()
         bot_token = os.getenv("BOT_TOKEN")
         print(f"{timestamp()} Starting up Brad's Bot...")
+        wait_until_ready.start()
         await client.start(f"{bot_token}")
+
     except Exception as error:
         print(f"{timestamp()} Bot has shut down due to Exception: {error}\n")
 

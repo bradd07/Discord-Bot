@@ -1,14 +1,15 @@
-from datetime import datetime, timedelta
 import discord
 import requests
 import asyncio
 import json
+import os
+import pytz
+from datetime import datetime, timedelta
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 from dotenv import load_dotenv
-import os
-import pytz
+from typing import Optional
 from colorama import Back, Fore, Style
 
 """
@@ -88,10 +89,49 @@ def is_url_image(image_url):
     return False
 
 
+def get_custom_thumbnail_embed(streamer_name: str, custom_thumbnail: str):
+    embed = discord.Embed(
+        title="Thumbnail Preview",
+        description=f"`{streamer_name}`",
+        color=discord.Color.purple()
+    )
+    embed.set_image(url=custom_thumbnail)
+    return embed
+
+
 def timestamp():
     return (Back.BLACK + Fore.GREEN + Style.BRIGHT +
             datetime.now(pytz.utc).astimezone(pytz.timezone('US/Arizona')).strftime("%H:%M:%S GMT/PST" +
                                                                                     Back.RESET + Fore.WHITE))
+
+
+class ConfirmationButtons(discord.ui.View):
+    def __init__(self, streamer_name: str, image_url: str, ctx: commands.Context, settings: dict):
+        super().__init__(timeout=None)
+        self.streamer_name = streamer_name
+        self.image_url = image_url
+        self.ctx = ctx
+        self.settings = settings
+        self.guild_id = str(ctx.guild.id)
+
+    @discord.ui.button(label="Accept", style=discord.ButtonStyle.green)
+    async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Set the custom thumbnail
+        self.settings[self.guild_id]["thumbnails"][self.streamer_name] = self.image_url
+        self.save_settings()
+        await interaction.response.send_message(f"> Custom thumbnail for `{self.streamer_name}` "
+                                                f"has been set: `{self.image_url}` by `{self.ctx.author.display_name}`")
+        self.stop()
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message(f"> Thumbnail change for `{self.streamer_name}` has been cancelled.",
+                                                ephemeral=True)
+        self.stop()
+
+    def save_settings(self):
+        with open('settings.json', 'w') as file:
+            json.dump(self.settings, file, indent=4)
 
 
 class TwitchCmds(commands.Cog):
@@ -188,13 +228,11 @@ class TwitchCmds(commands.Cog):
         await ctx.send(f"> Set announcement channel to <#{channel_id.id}>.")
         self.save_settings()
 
-    @twitch.command(name="thumbnail", description="Set a custom thumbnail preview for a Twitch streamer")
-    @app_commands.describe(name="Name of the streamer to modify",
+    @twitch.command(name="thumbnail", description="Set a custom thumbnail for a Twitch streamer")
+    @app_commands.describe(name="Name of the streamer to modify/view",
                            image_url='URL of the image (type "default" to reset)')
     @commands.has_permissions(manage_guild=True)
-    async def set_thumbnail(self, ctx: Context, name: str, image_url: str):
-        await ctx.defer()
-
+    async def set_thumbnail(self, ctx: Context, name: str, image_url: Optional[str]):
         # get guild
         guild_id = str(ctx.guild.id)
 
@@ -209,20 +247,37 @@ class TwitchCmds(commands.Cog):
 
         # check if this streamer is already in the list
         if "names" in self.settings[guild_id] and name in self.settings[guild_id]["names"]:
-            # check if we need to set back to default
-            if image_url == "default":
-                self.settings[guild_id]["thumbnails"].pop(name, None)
-                await ctx.send(f"> Thumbnail for `{name}` has been set to `{image_url}`", ephemeral=True)
-            else:
-                # check that this is a valid URL that is an image
-                if is_url_image(image_url):
-                    self.settings[guild_id]["thumbnails"][name] = image_url
-                    await ctx.send(f"> Custom thumbnail for `{name}` has been set: `{image_url}`", ephemeral=True)
+            # check if they provided a URL at all
+            if image_url:
+                # check if we need to set back to default
+                if image_url == "default":
+                    self.settings[guild_id]["thumbnails"].pop(name, None)
+                    await ctx.send(f"> Thumbnail for `{name}` has been set to `{image_url}` "
+                                   f"by `{ctx.author.display_name}`")
                 else:
-                    await ctx.send(f"> `{image_url}` is not a valid image URL", ephemeral=True)
+                    # check that this is a valid URL that is an image
+                    if is_url_image(image_url):
+                        # Provide a preview with Accept and Cancel buttons
+                        embed = get_custom_thumbnail_embed(name, image_url)
+                        view = ConfirmationButtons(name, image_url, ctx, self.settings)
+                        await ctx.send(embed=embed, view=view, ephemeral=True)
+                    else:
+                        # assume not an image link
+                        await ctx.send(f"> `{image_url}` is not a valid image URL", ephemeral=True)
+            else:
+                # no URL provided, give a preview of the current thumnail if it exists
+                custom_thumbnail = self.settings[guild_id].get("thumbnails", {}).get(name)
+                if custom_thumbnail:
+                    # Provide a preview of the existing custom thumbnail
+                    embed = get_custom_thumbnail_embed(name, custom_thumbnail)
+                    await ctx.send(embed=embed, ephemeral=True)
+                else:
+                    await ctx.send(f"> No custom thumbnail is set for `{name}`. "
+                                   f"Try `/twitch thumbnail {name} [URL]` to set one for them!", ephemeral=True)
         # else assume this streamer is not in the list yet
         else:
-            await ctx.send(f"> `{name}` is not in the list of broadcasters.")
+            await ctx.send(f"> `{name}` is not in the list of broadcasters. "
+                           f"Add them with `/twitch add [name]`!", ephemeral=True)
 
         self.save_settings()
 
@@ -265,8 +320,8 @@ class TwitchCmds(commands.Cog):
 
     def save_settings(self):
         # open settings file to write
-        with open("./settings.json", "w") as f:
-            json.dump(self.settings, f)
+        with open("./settings.json", "w") as file:
+            json.dump(self.settings, file, indent=4)
 
     async def validate_token(self):
         # set up get request

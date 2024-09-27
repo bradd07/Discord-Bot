@@ -105,13 +105,18 @@ def timestamp():
                                                                                     Back.RESET + Fore.WHITE))
 
 
+# this class handles the Accept/Cancel buttons for both changing a thumbnail
+# and for changing the announcement message. what action(s) to take is determined by the
+# flag provided during initialization ("thumbnail" or "message)
 class ConfirmationButtons(discord.ui.View):
     def __init__(self, ctx: commands.Context, settings: dict, flag: str, streamer_name=None, image_url=None, message=None):
         super().__init__(timeout=None)
+        # set optional parameters
         self.streamer_name = streamer_name
         self.image_url = image_url
         self.message = message
 
+        # set required parameters
         self.ctx = ctx
         self.settings = settings
         self.guild_id = str(ctx.guild.id)
@@ -119,18 +124,32 @@ class ConfirmationButtons(discord.ui.View):
 
     @discord.ui.button(label="Accept", style=discord.ButtonStyle.green)
     async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # check what we are accepting
         if self.flag == "thumbnail":
             # set the custom thumbnail
             self.settings[self.guild_id]["thumbnails"][self.streamer_name] = self.image_url
-            self.save_settings()
-            await interaction.response.send_message(f"> Custom thumbnail for `{self.streamer_name}` "
-                                                    f"has been set to `{self.image_url}` by "
-                                                    f"`{self.ctx.author.display_name}`")
+
+            # notify
+            embed = discord.Embed(title="Custom thumbnail set", color=discord.Color.purple())
+            embed.add_field(name=f"Modified by @{self.ctx.author}", value=f"For `{self.streamer_name}`", inline=False)
+            embed.set_image(url=self.image_url)
+            if self.ctx.guild.icon:
+                # attempt to use the current guild's icon
+                embed.set_thumbnail(url=self.ctx.guild.icon.url)
+            else:
+                # use default Status brand
+                embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
+
+            await interaction.response.send_message(embed=embed)
+            # await interaction.response.send_message(f"> Custom thumbnail for `{self.streamer_name}` "
+            #                                         f"has been set to `{self.image_url}` by "
+            #                                         f"`{self.ctx.author.display_name}`")
         elif self.flag == "message":
             # set the custom message
             self.settings[self.guild_id]["message"] = self.message
 
-            embed = discord.Embed(title="New announcement message set")
+            # notify
+            embed = discord.Embed(title="New announcement message set", color=discord.Color.purple())
             embed.add_field(name=f"Modified by @{self.ctx.author}", value=self.message, inline=False)
             if self.ctx.guild.icon:
                 # attempt to use the current guild's icon
@@ -281,7 +300,7 @@ class TwitchCmds(commands.Cog):
 
             # provide a preview with Accept and Cancel buttons
             view = ConfirmationButtons(ctx, self.settings, "message", message=message)
-            embed = discord.Embed(title="Confirm your changes")
+            embed = discord.Embed(title="Confirm your changes", color=discord.Color.purple())
             embed.add_field(name=f"New Announcement Message:", value=message, inline=False)
             if ctx.guild.icon:
                 # attempt to use the current guild's icon

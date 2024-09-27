@@ -529,7 +529,7 @@ class TwitchCmds(commands.Cog):
         if custom_thumbnail:
             embed.set_image(url=custom_thumbnail)
         else:
-            # generate the current UNIX timestamp
+            # generate the current UNIX timestamp to cache bust Discord
             unix_time = int(time.time())
 
             # default to Twitch stream thumbnail with cache busting

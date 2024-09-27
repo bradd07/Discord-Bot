@@ -211,11 +211,21 @@ class TwitchCmds(commands.Cog):
 
         # check if this streamer is already in the list
         if "names" in self.settings[guild_id] and name in self.settings[guild_id]["names"]:
-            await ctx.send(f"> `{name}` is already in the list of broadcasters.")
+            await ctx.send(f"> `{name}` is already in the list of broadcasters!", ephemeral=True)
         # else assume this streamer is not in the list yet
         else:
             self.settings[guild_id].setdefault("names", []).append(name)
-            await ctx.send(f"> Added `{name}` to the list of broadcasters to check.")
+            embed = discord.Embed(title="Added new streamer", colour=discord.Colour.purple())
+            embed.add_field(name=f"Modified by @{ctx.author}", value=f"Added `{name}`", inline=False)
+
+            if ctx.guild.icon:
+                # attempt to use the current guild's icon
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            else:
+                # use default Status brand
+                embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
+
+            await ctx.send(embed=embed)
 
         # save settings
         self.save_settings()
@@ -237,10 +247,20 @@ class TwitchCmds(commands.Cog):
         # check if this streamer is already in the list
         if "names" in self.settings[guild_id] and name in self.settings[guild_id]["names"]:
             self.settings[guild_id]["names"].remove(name)
-            await ctx.send(f"> Removed `{name}` from the list of broadcasters.")
+            embed = discord.Embed(title="Removed streamer", colour=discord.Colour.purple())
+            embed.add_field(name=f"Modified by @{ctx.author}", value=f"Removed `{name}`", inline=False)
+
+            if ctx.guild.icon:
+                # attempt to use the current guild's icon
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            else:
+                # use default Status brand
+                embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
+
+            await ctx.send(embed=embed)
         # else assume this streamer is not in the list yet
         else:
-            await ctx.send(f"> `{name}` is not in the list of broadcasters.")
+            await ctx.send(f"> `{name}` is not in the list of broadcasters!", ephemeral=True)
 
         # save settings
         self.save_settings()
@@ -265,12 +285,34 @@ class TwitchCmds(commands.Cog):
         if guild_id not in self.settings:
             self.settings[guild_id] = {}
 
-        # set channel id for this guild
-        self.settings[guild_id]["channel_id"] = channel_id.id
+        # make sure they entered digits
+        if channel_id.isdigit():
+            # try to get the channel
+            channel = self.bot.get_channel(int(channel_id))
+            if channel:
+                # set channel id for this guild
+                self.settings[guild_id]["channel_id"] = channel_id
 
-        # notify and save
-        await ctx.send(f"> Set announcement channel to <#{channel_id.id}>.")
-        self.save_settings()
+                # notify and save
+                embed = discord.Embed(title="Set announcement channel", colour=discord.Colour.purple())
+                embed.add_field(name=f"Modified by @{ctx.author}", value=f"Set to <#{channel_id}>", inline=False)
+
+                if ctx.guild.icon:
+                    # attempt to use the current guild's icon
+                    embed.set_thumbnail(url=ctx.guild.icon.url)
+                else:
+                    # use default Status brand
+                    embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
+
+                await ctx.send(embed=embed)
+                self.save_settings()
+            else:
+                # entered invalid ID (channel does not exist, was entered incorrectly, or no access)
+                await ctx.send("> That doesn't seem like a valid channel ID in this server. "
+                               "Try again or make sure I have access to that channel!", ephemeral=True)
+        else:
+            # entered invalid characters (not a digit)
+            await ctx.send("> Please enter a valid channel ID.", ephemeral=True)
 
     @twitch.command(name="setmessage", description="Set a custom message for livestream announcements")
     @app_commands.describe(message='What do you want to say? ("default" to reset)')
@@ -282,7 +324,7 @@ class TwitchCmds(commands.Cog):
         if message == "default":
             # set back to default
             self.settings[guild_id].pop("message", None)
-            embed = discord.Embed(title="New announcement message set")
+            embed = discord.Embed(title="New announcement message set", colour=discord.Colour.purple())
             embed.add_field(name=f"Set to default by @{ctx.author}", value="", inline=False)
 
             if ctx.guild.icon:
@@ -335,8 +377,17 @@ class TwitchCmds(commands.Cog):
                 # check if we need to set back to default
                 if image_url == "default":
                     self.settings[guild_id]["thumbnails"].pop(name, None)
-                    await ctx.send(f"> Thumbnail for `{name}` has been set to `{image_url}` "
-                                   f"by `{ctx.author.display_name}`")
+                    embed = discord.Embed(title="Custom thumbnail set", colour=discord.Colour.purple())
+                    embed.add_field(name=f"Set to default by @{ctx.author}", value=f"For `{name}`", inline=False)
+
+                    if ctx.guild.icon:
+                        # attempt to use the current guild's icon
+                        embed.set_thumbnail(url=ctx.guild.icon.url)
+                    else:
+                        # use default Status brand
+                        embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
+
+                    await ctx.send(embed=embed)
                 else:
                     # check that this is a valid URL that is an image
                     if is_url_image(image_url):
@@ -475,7 +526,7 @@ class TwitchCmds(commands.Cog):
                         if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
                             # get specified channel ID for this guild
                             channel_id = self.settings[guild_id]["channel_id"]
-                            channel = self.bot.get_channel(channel_id)
+                            channel = self.bot.get_channel(int(channel_id))
 
                             # make sure channel exists
                             if channel:
@@ -525,7 +576,7 @@ class TwitchCmds(commands.Cog):
         embed.set_author(name=name)
 
         # get custom thumbnail if available
-        custom_thumbnail = self.settings.get(guild_id, {}).get("thumbnails", {}).get(name)
+        custom_thumbnail = self.settings.get(guild_id, {}).get("thumbnails", {}).get(name.lower())
         if custom_thumbnail:
             embed.set_image(url=custom_thumbnail)
         else:
@@ -568,7 +619,7 @@ class TwitchCmds(commands.Cog):
         if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
             # get the channel ID for this guild
             channel_id = self.settings[guild_id]["channel_id"]
-            channel = self.bot.get_channel(channel_id)
+            channel = self.bot.get_channel(int(channel_id))
 
             if channel:
                 # set up request to API

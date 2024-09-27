@@ -102,7 +102,7 @@ def get_custom_thumbnail_embed(streamer_name: str, custom_thumbnail: str):
 
 def timestamp():
     return (Back.BLACK + Fore.GREEN + Style.BRIGHT +
-            datetime.now(pytz.utc).astimezone(pytz.timezone('US/Arizona')).strftime("%H:%M:%S GMT/PST" +
+            datetime.now(pytz.utc).astimezone(pytz.timezone('US/Arizona')).strftime("%H:%M:%S MST/PST" +
                                                                                     Back.RESET + Fore.WHITE))
 
 

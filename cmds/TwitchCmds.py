@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import pytz
+import time
 from datetime import datetime, timedelta
 from discord import app_commands
 from discord.ext import commands
@@ -528,9 +529,12 @@ class TwitchCmds(commands.Cog):
         if custom_thumbnail:
             embed.set_image(url=custom_thumbnail)
         else:
-            # default to Twitch stream thumbnail
+            # generate the current UNIX timestamp
+            unix_time = int(time.time())
+
+            # default to Twitch stream thumbnail with cache busting
             embed.set_image(
-                url=stream_data['thumbnail_url'].replace("{width}", "320").replace("{height}", "180"))
+                url=f"{stream_data['thumbnail_url'].replace('{width}', '320').replace('{height}', '180')}?v={unix_time}")
 
         if guild.icon:
             # attempt to use the current guild's icon
@@ -541,7 +545,7 @@ class TwitchCmds(commands.Cog):
         embed.add_field(name="Viewers", value=viewer_count, inline=False)
         embed.add_field(name="Game", value=game_name, inline=False)
 
-        # get mst current time
+        # get current time and footer
         embed.set_footer(text="Twitch",
                          icon_url="https://cdn-longterm.mee6.xyz/plugins/twitch/logo.png")
         embed.timestamp = datetime.now()

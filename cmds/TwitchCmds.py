@@ -110,7 +110,8 @@ def timestamp():
 # and for changing the announcement message. what action(s) to take is determined by the
 # flag provided during initialization ("thumbnail" or "message)
 class ConfirmationButtons(discord.ui.View):
-    def __init__(self, ctx: commands.Context, settings: dict, flag: str, streamer_name=None, image_url=None, message=None):
+    def __init__(self, ctx: commands.Context, settings: dict, flag: str, streamer_name=None, image_url=None,
+                 message=None):
         super().__init__(timeout=None)
         # set optional parameters
         self.streamer_name = streamer_name
@@ -167,8 +168,8 @@ class ConfirmationButtons(discord.ui.View):
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.flag == "thumbnail":
-            await interaction.response.send_message(f"> Thumbnail change for `{self.streamer_name}` has been cancelled.",
-                                                    ephemeral=True)
+            await interaction.response.send_message(f"> Thumbnail change for `{self.streamer_name}` has been cancelled."
+                                                    , ephemeral=True)
         elif self.flag == "message":
             await interaction.response.send_message(f"Announcement message change has been cancelled.", ephemeral=True)
         self.stop()
@@ -393,7 +394,8 @@ class TwitchCmds(commands.Cog):
                     if is_url_image(image_url):
                         # Provide a preview with Accept and Cancel buttons
                         embed = get_custom_thumbnail_embed(name, image_url)
-                        view = ConfirmationButtons(ctx, self.settings, "thumbnail", streamer_name=name, image_url=image_url)
+                        view = ConfirmationButtons(ctx, self.settings, "thumbnail",
+                                                   streamer_name=name, image_url=image_url)
                         await ctx.send(embed=embed, view=view, ephemeral=True)
                     else:
                         # assume not an image link
@@ -437,7 +439,8 @@ class TwitchCmds(commands.Cog):
             await self.force_announcement(ctx, guild_id, name)
         # else assume this streamer is not in the list yet
         else:
-            await ctx.send(f"`{name}` is not in the list of broadcasters. Use `/twitch add` to add this streamer.")
+            await ctx.send(f"`{name}` is not in the list of broadcasters. Use `/twitch add` "
+                           f"to add this streamer.", ephemeral=True)
 
         # save settings
         self.save_settings()
@@ -640,10 +643,11 @@ class TwitchCmds(commands.Cog):
                     await self.send_announcement(channel, stream_data, guild_id)
                 else:
                     # if no data exists, the user is offline
-                    await ctx.send(f"> `{broadcaster_name}` is currently offline.")
+                    await ctx.send(f"> `{broadcaster_name}` is currently offline.", ephemeral=True)
             else:
                 # if channel does not exist, no channel is set yet
-                await ctx.send(f"> Announcement channel has not been set yet. Use `/twitch setchannel` to get started.")
+                await ctx.send(f"> Announcement channel has not been set yet. Use `/twitch setchannel` to get started.",
+                               ephemeral=True)
 
 
 async def setup(bot):

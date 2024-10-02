@@ -276,9 +276,9 @@ class TwitchCmds(commands.Cog):
         await self.list_broadcasters(ctx, guild_id)
 
     @twitch.command(name="setchannel", description="Designate the channel for announcements")
-    @app_commands.describe(channel_id="ID of the channel to send announcements to")
+    @app_commands.describe(channel="Channel to send announcements to")
     @commands.has_permissions(manage_guild=True)
-    async def set_announcement_channel(self, ctx: Context, channel_id):
+    async def set_announcement_channel(self, ctx: Context, channel: discord.TextChannel):
         # get guild
         guild_id = str(ctx.guild.id)
 
@@ -286,34 +286,23 @@ class TwitchCmds(commands.Cog):
         if guild_id not in self.settings:
             self.settings[guild_id] = {}
 
-        # make sure they entered digits
-        if channel_id.isdigit():
-            # try to get the channel
-            channel = self.bot.get_channel(int(channel_id))
-            if channel:
-                # set channel id for this guild
-                self.settings[guild_id]["channel_id"] = channel_id
+        # set channel id for this guild
+        self.settings[guild_id]["twitch_channel"] = channel.id
 
-                # notify and save
-                embed = discord.Embed(title="Set announcement channel", colour=discord.Colour.purple())
-                embed.add_field(name=f"Modified by @{ctx.author}", value=f"Set to <#{channel_id}>", inline=False)
+        # notify and save
+        embed = discord.Embed(title="Set announcement channel", colour=discord.Colour.purple())
+        embed.add_field(name=f"Modified by @{ctx.author}", value=f"Set to {channel.mention}", inline=False)
 
-                if ctx.guild.icon:
-                    # attempt to use the current guild's icon
-                    embed.set_thumbnail(url=ctx.guild.icon.url)
-                else:
-                    # use default Status brand
-                    embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
-
-                await ctx.send(embed=embed)
-                self.save_settings()
-            else:
-                # entered invalid ID (channel does not exist, was entered incorrectly, or no access)
-                await ctx.send("> That doesn't seem like a valid channel ID in this server. "
-                               "Try again or make sure I have access to that channel!", ephemeral=True)
+        if ctx.guild.icon:
+            # attempt to use the current guild's icon
+            embed.set_thumbnail(url=ctx.guild.icon.url)
         else:
-            # entered invalid characters (not a digit)
-            await ctx.send("> Please enter a valid channel ID.", ephemeral=True)
+            # use default Status brand
+            embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
+
+        await ctx.send(embed=embed)
+        self.save_settings()
+
 
     @twitch.command(name="setmessage", description="Set a custom message for livestream announcements")
     @app_commands.describe(message='What do you want to say? ("default" to reset)')
@@ -526,9 +515,9 @@ class TwitchCmds(commands.Cog):
 
                         # try to send message
                         stream_data = data["data"][0]
-                        if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
+                        if guild_id in self.settings and "twitch_channel" in self.settings[guild_id]:
                             # get specified channel ID for this guild
-                            channel_id = self.settings[guild_id]["channel_id"]
+                            channel_id = self.settings[guild_id]["twitch_channel"]
                             channel = self.bot.get_channel(int(channel_id))
 
                             # make sure channel exists
@@ -547,8 +536,8 @@ class TwitchCmds(commands.Cog):
     async def list_broadcasters(self, ctx, guild_id):
         # check if there are broadcasters set
         if "names" in self.settings[guild_id]:
-            if "channel_id" in self.settings[guild_id]:
-                channel_id = f"<#{self.settings[guild_id]['channel_id']}>"
+            if "twitch_channel" in self.settings[guild_id]:
+                channel_id = f"<#{self.settings[guild_id]['twitch_channel']}>"
             else:
                 channel_id = "None"
             # display
@@ -619,9 +608,9 @@ class TwitchCmds(commands.Cog):
     # forces an announcement for a specific broadcaster
     async def force_announcement(self, ctx, guild_id, broadcaster_name):
         # check that a channel ID has been set
-        if guild_id in self.settings and "channel_id" in self.settings[guild_id]:
+        if guild_id in self.settings and "twitch_channel" in self.settings[guild_id]:
             # get the channel ID for this guild
-            channel_id = self.settings[guild_id]["channel_id"]
+            channel_id = self.settings[guild_id]["twitch_channel"]
             channel = self.bot.get_channel(int(channel_id))
 
             if channel:
@@ -648,6 +637,10 @@ class TwitchCmds(commands.Cog):
                 # if channel does not exist, no channel is set yet
                 await ctx.send(f"> Announcement channel has not been set yet. Use `/twitch setchannel` to get started.",
                                ephemeral=True)
+        else:
+            # if channel does not exist, no channel is set yet
+            await ctx.send(f"> Announcement channel has not been set yet. Use `/twitch setchannel` to get started.",
+                           ephemeral=True)
 
 
 async def setup(bot):

@@ -1,6 +1,4 @@
 import json
-from datetime import datetime
-
 import discord
 from dateutil.tz import tz
 from discord import app_commands
@@ -8,7 +6,6 @@ from discord.ext import commands
 from discord.ext.commands import Context
 from dateutil import parser
 from typing import Optional
-
 from cmds.TwitchCmds import is_url_image
 
 """
@@ -64,7 +61,8 @@ class ValCommands(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     @app_commands.describe(team1="Team 1 of the match you want to schedule",
                            team2="Team 2 of the match you want to schedule",
-                           date="Date and time of the match")
+                           date="Date and time of the match",
+                           thumbnail="URL of the thumbnail for the match")
     async def send(self, ctx: Context, team1: discord.Role, team2: discord.Role, date: str, thumbnail: Optional[str]):
         # check that a channel has been set
         guild_id = str(ctx.guild.id)
@@ -87,7 +85,7 @@ class ValCommands(commands.Cog):
                     # remove '@' from the date string if it exists since it breaks parser
                     date = date.replace('@', '')
 
-                    # parse date with timezone info
+                    # parse date with timezone info, if any
                     parsed_date = parser.parse(date.upper(), tzinfos=tzinfos)
 
                     # convert the datetime object to a UNIX timestamp
@@ -102,19 +100,24 @@ class ValCommands(commands.Cog):
                     embed.add_field(name="Teams", value=f'<@&{team1.id}> vs. <@&{team2.id}>',
                                     inline=False)
                     embed.add_field(name="When", value=f'<t:{unix_timestamp}:f>', inline=False)
+
+                    # check if server has icon set
                     if ctx.guild.icon:
-                        # attempt to use the current guild's icon
                         embed.set_thumbnail(url=ctx.guild.icon.url)
                     else:
                         # use default Status brand
                         embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
+
+                    # check if thumbnail specified
                     if thumbnail:
+                        # make sure link is actually an image
                         if is_url_image(thumbnail):
                             embed.set_image(url=thumbnail)
                         else:
                             # assume not an image link
                             await ctx.send(f"> `{thumbnail}` is not a valid image URL", ephemeral=True)
                             return
+                    # otherwise, do not use any thumbnail
 
                     # send the embed to the designated channel
                     await channel.send(embed=embed)
@@ -122,12 +125,12 @@ class ValCommands(commands.Cog):
 
                 # incorrect date/time entered by user
                 except ValueError as e:
-                    await ctx.send(f"{date} Does not seem to be a valid date/time. Please try again.",
+                    await ctx.send(f"> {date} Does not seem to be a valid date/time. Please try again.",
                                    ephemeral=True)
             else:
-                # no channel has been set yet
-                await ctx.send(f"> Announcement channel for scheduled matches has not been set yet. "
-                               f"Use `/schedule setchannel` to get started.",
+                # channel was set, but we can't find it anymore
+                await ctx.send(f"> The current announcement channel no longer exists or I no longer "
+                               f"have access to that channel. Use `/schedule setchannel` to get started.",
                                ephemeral=True)
         else:
             # no channel has been set yet

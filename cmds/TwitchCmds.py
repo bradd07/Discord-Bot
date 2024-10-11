@@ -108,7 +108,7 @@ def timestamp():
 
 # this class handles the Accept/Cancel buttons for both changing a thumbnail
 # and for changing the announcement message. what action(s) to take is determined by the
-# flag provided during initialization ("thumbnail" or "message)
+# flag provided during initialization ("thumbnail" or "message")
 class ConfirmationButtons(discord.ui.View):
     def __init__(self, ctx: commands.Context, settings: dict, flag: str, streamer_name=None, image_url=None,
                  message=None):
@@ -143,9 +143,6 @@ class ConfirmationButtons(discord.ui.View):
                 embed.set_thumbnail(url='https://i.imgur.com/gZyZBpQ.png')
 
             await interaction.response.send_message(embed=embed)
-            # await interaction.response.send_message(f"> Custom thumbnail for `{self.streamer_name}` "
-            #                                         f"has been set to `{self.image_url}` by "
-            #                                         f"`{self.ctx.author.display_name}`")
         elif self.flag == "message":
             # set the custom message
             self.settings[self.guild_id]["message"] = self.message
@@ -634,8 +631,9 @@ class TwitchCmds(commands.Cog):
                     # if no data exists, the user is offline
                     await ctx.send(f"> `{broadcaster_name}` is currently offline.", ephemeral=True)
             else:
-                # if channel does not exist, no channel is set yet
-                await ctx.send(f"> Announcement channel has not been set yet. Use `/twitch setchannel` to get started.",
+                # channel was set, but we can't find it anymore
+                await ctx.send(f"> The current announcement channel no longer exists or I no longer "
+                               f"have access to that channel. Use `/twitch setchannel` to get started.",
                                ephemeral=True)
         else:
             # if channel does not exist, no channel is set yet

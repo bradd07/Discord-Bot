@@ -58,6 +58,3 @@ All data is saved locally to a JSON file.
 - /twitch force [username] : Force an announcement to the channel for the specified streamer in this guild\
 All data is saved locally to a JSON file.  
 NOTE: Although we try to make an announcement every time a new stream starts, we also don't want to spam servers with announcements. Therefore, there is a hard limit of one announcement per streamer every six hours.  
-‎   
-- /overwatch [player] : Lookup an overwatch player's statistics for the most recent season.
-- /overwatch [player] [hero] : Look up an overwatch player's statistics for a specific hero for the most recent season.
